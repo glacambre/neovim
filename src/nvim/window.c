@@ -1322,7 +1322,7 @@ int win_split_ins(int size, int flags, win_T *new_wp, int dir)
 
   grid_assign_handle(&wp->w_grid);
   if (ext_windows) {
-    ui_call_win_split(curwin->handle, curwin->w_grid.handle, wp->handle,
+    ui_call_win_split(curwin->handle, curwin->w_grid_alloc.handle, wp->handle,
                       wp->w_grid.handle, UI_WIN_FLAGS(flags));
   }
 
