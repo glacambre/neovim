@@ -10882,7 +10882,7 @@ static void f_termopen(typval_T *argvars, typval_T *rettv, FunPtr fptr)
   // the 'swapfile' option to ensure no swap file will be created
   curbuf->b_p_swf = false;
   (void)setfname(curbuf, NameBuff, NULL, true);
-  // Save the job id and pid in b:terminal_job_{id,pid}
+  // Save the job id, pid and command in b:terminal_job_{id,pid,cmd}
   Error err = ERROR_INIT;
   // deprecated: use 'channel' buffer option
   dict_set_var(curbuf->b_vars, cstr_as_string("terminal_job_id"),
@@ -10890,6 +10890,9 @@ static void f_termopen(typval_T *argvars, typval_T *rettv, FunPtr fptr)
   api_clear_error(&err);
   dict_set_var(curbuf->b_vars, cstr_as_string("terminal_job_pid"),
                INTEGER_OBJ(pid), false, false, &err);
+  api_clear_error(&err);
+  dict_set_var(curbuf->b_vars, cstr_as_string("terminal_job_cmd"),
+               STRING_OBJ(cstr_to_string(cmd)), false, false, &err);
   api_clear_error(&err);
 
   channel_terminal_open(curbuf, chan);

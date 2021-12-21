@@ -152,6 +152,80 @@ static VTermScreenCallbacks vterm_screen_callbacks = {
   .sb_popline  = term_sb_pop,
 };
 
+// OSC 7 allows setting the current directory of the terminal. There doesn't
+// seem to be any official reference, but
+// https://iterm2.com/documentation-escape-codes.html
+// and
+// https://wezfurlong.org/wezterm/shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory
+// seem to agree on what to do, so let's copy them!
+int handle_osc_7(const char *command, size_t cmdlen, void *user)
+{
+  Terminal *term = (Terminal *)user;
+
+  char protocol[] = "7;file://";
+  size_t protocol_length = sizeof(protocol) - 1;
+  if (cmdlen < protocol_length) {
+    return 0;
+  }
+  // Make sure the command starts with the right sequence
+  if (STRNCMP(command, protocol, protocol_length)) {
+    return 0;
+  }
+  // Make sure it contains both a host + a file
+  char *first_separator = strstr(command + protocol_length, "/");
+  if (first_separator == NULL) {
+    return 0;
+  }
+  // Make sure the end of the command is present
+  char *command_end = strstr(command, "\033\\");
+  if (command_end == NULL) {
+    return 0;
+  }
+
+  while (is_path_head((char_u *)first_separator + 1)) {
+    first_separator += 1;
+  }
+
+  buf_T *buf = handle_get_buffer(term->buf_handle);
+
+  varnumber_T pid = tv_dict_get_number(buf->b_vars, "terminal_job_pid");
+  char* cmd = tv_dict_get_string(buf->b_vars, "terminal_job_cmd", true);
+
+  command_end[0] = '\0';
+  snprintf((char *)NameBuff, sizeof(NameBuff), "term://%s//%li:%s",
+      (char *)first_separator, pid, cmd);
+  command_end[0] = '\033';
+
+  xfree(cmd);
+  xfree(buf->b_ffname);
+  buf->b_ffname = vim_strsave(NameBuff);
+
+  do_autochdir();
+
+  return 1;
+}
+
+// libvterm doesn't seem to have any documentation, but reading the source code
+// it seems that VTermParserCallbacks should return 1 when handling the OSC and
+// 0 when not handling it.
+int on_unknown_osc(const char *command, size_t cmdlen, void *user)
+{
+  switch (atoi(command)) {
+    case 7: return handle_osc_7(command, cmdlen, user);
+    default: return 0;
+  }
+}
+
+static VTermParserCallbacks vterm_screen_fallbacks = {
+  .text = NULL,
+  .control = NULL,
+  .escape = NULL,
+  .csi = NULL,
+  .osc = on_unknown_osc,
+  .dcs = NULL,
+  .resize = (int (*)(int rows, int cols, void *user))NULL,
+};
+
 static PMap(ptr_t) invalidated_terminals = MAP_INIT;
 
 void terminal_init(void)
@@ -198,6 +272,7 @@ Terminal *terminal_open(buf_T *buf, TerminalOptions opts)
   vterm_screen_enable_altscreen(rv->vts, true);
   // delete empty lines at the end of the buffer
   vterm_screen_set_callbacks(rv->vts, &vterm_screen_callbacks, rv);
+  vterm_screen_set_unrecognised_fallbacks(rv->vts, &vterm_screen_fallbacks, rv);
   vterm_screen_set_damage_merge(rv->vts, VTERM_DAMAGE_SCROLL);
   vterm_screen_reset(rv->vts, 1);
   vterm_output_set_callback(rv->vt, term_output_callback, rv);
