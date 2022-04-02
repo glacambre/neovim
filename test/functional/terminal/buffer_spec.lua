@@ -298,6 +298,33 @@ describe(':terminal buffer', function()
     feed_command('put a')  -- register a is empty
     helpers.assert_alive()
   end)
+
+  it('supports #OSC7', function()
+    exec_lua([[
+      vim.cmd('set autochdir')
+      vim.cmd('set autoshelldir')
+      vim.cmd('sp')
+      vim.cmd('enew')
+
+      local buf = vim.api.nvim_win_get_buf(0)
+      local term = vim.api.nvim_open_term(0, {})
+
+      -- cwd will be inserted in a file URI, which cannot contain backslashes
+      local cwd = vim.fn.getcwd():gsub('\\', '/')
+      -- parent is cwd from start to last separator (included)
+      local parent = cwd:match('^(.+/)')
+
+      vim.fn.chansend(term, {string.char(27) .. ']7;file://host' .. parent .. string.char(27) .. '\\'})
+
+      -- expected is parent, without final separator
+      vim.g.osc7_expected_path = parent:match('^(.+)/')
+      vim.g.osc7_actual_path = vim.fn.getcwd():gsub('\\', '/')
+      vim.g.osc7_expected_buf_var = parent
+      vim.g.osc7_actual_buf_var = vim.api.nvim_buf_get_var(buf, 'terminal_job_cwd'):gsub('\\', '/')
+    ]])
+    eq(eval('g:osc7_expected_path'), eval('g:osc7_actual_path'))
+    eq(eval('g:osc7_expected_buf_var'), eval('g:osc7_actual_buf_var'))
+  end)
 end)
 
 describe('No heap-buffer-overflow when using', function()
