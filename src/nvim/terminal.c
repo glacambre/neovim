@@ -46,6 +46,7 @@
 #include <vterm.h>
 #include <vterm_keycodes.h>
 
+#include "nvim/api/private/converter.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
 #include "nvim/ascii.h"
@@ -170,6 +171,50 @@ static VTermScreenCallbacks vterm_screen_callbacks = {
   .sb_popline  = term_sb_pop,
 };
 
+static void emit_osc_event(void **argv)
+{
+  int command = (int)(ptrdiff_t)argv[0];
+  char *payload = argv[1];
+  int payload_length = (int)(ptrdiff_t)argv[2];
+
+  save_v_event_T save_v_event;
+  dict_T *dict = get_v_event(&save_v_event);
+
+  typval_T cmd;
+  cmd.v_type = VAR_NUMBER;
+  cmd.vval.v_number = command;
+  tv_dict_add_nr(dict, S_LEN("command"), cmd.vval.v_number);
+
+  typval_T str;
+  str.v_type = VAR_STRING;
+  str.vval.v_string = payload;
+  tv_dict_add_str_len(dict, S_LEN("payload"), str.vval.v_string, payload_length);
+
+  tv_dict_set_keys_readonly(dict);
+
+  apply_autocmds(EVENT_TERMOSC, NULL, NULL, false, curbuf);
+
+  restore_v_event(dict, &save_v_event);
+  xfree(payload);
+}
+
+static int on_osc(int command, VTermStringFragment frag, void *user)
+{
+  char *str = xmemdupz(frag.str, frag.len);
+  multiqueue_put(main_loop.events, emit_osc_event, 3, command, str, frag.len);
+  return 1;
+}
+
+static VTermStateFallbacks vterm_fallbacks = {
+  .control = NULL,
+  .csi = NULL,
+  .osc = on_osc,
+  .dcs = NULL,
+  .apc = NULL,
+  .pm = NULL,
+  .sos = NULL,
+};
+
 static PMap(ptr_t) invalidated_terminals = MAP_INIT;
 
 void terminal_init(void)
@@ -223,6 +268,7 @@ Terminal *terminal_open(buf_T *buf, TerminalOptions opts)
   vterm_screen_enable_altscreen(rv->vts, true);
   // delete empty lines at the end of the buffer
   vterm_screen_set_callbacks(rv->vts, &vterm_screen_callbacks, rv);
+  vterm_screen_set_unrecognised_fallbacks(rv->vts, &vterm_fallbacks, rv);
   vterm_screen_set_damage_merge(rv->vts, VTERM_DAMAGE_SCROLL);
   vterm_screen_reset(rv->vts, 1);
   vterm_output_set_callback(rv->vt, term_output_callback, rv);

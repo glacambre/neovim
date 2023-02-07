@@ -55,6 +55,9 @@ NEW FEATURES                                                    *news-features*
 
 The following new APIs or features were added.
 
+• Terminal buffers now emit a TermOSC autocommand event when their children
+  emit OSC sequences. See `:h TermOSC` for more information.
+
 • A new environment variable named NVIM_APPNAME enables configuring the
   directories where Neovim should find its configuration and state files. See
   `:help $NVIM_APPNAME` .
