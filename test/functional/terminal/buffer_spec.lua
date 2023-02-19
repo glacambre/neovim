@@ -362,6 +362,19 @@ describe(':terminal buffer', function()
     meths.chan_send(term, payload)
     eq({ command = 7, payload = expected }, eval('g:osc_event'))
   end)
+
+  it('reacts to #OSC7', function()
+    command('set autoshelldir')
+    command('split')
+    command('enew')
+    local term = meths.open_term(0, {})
+    -- cwd will be inserted in a file URI, which cannot contain backslashes
+    local cwd = funcs.getcwd():gsub('\\', '/')
+    local parent = cwd:match('^(.+/)')
+    meths.chan_send(term, '\027]7;file://host' .. parent .. '\027\\')
+    -- expected is parent, without final separator
+    eq(parent:match("^(.+)/"), funcs.getcwd(0):gsub('\\', '/'))
+  end)
 end)
 
 describe('No heap-buffer-overflow when using', function()

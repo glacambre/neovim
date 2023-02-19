@@ -902,6 +902,20 @@ function vim._init_default_autocmds()
     nested = true,
     command = "if !exists('b:term_title')|call termopen(matchstr(expand(\"<amatch>\"), '\\c\\mterm://\\%(.\\{-}//\\%(\\d\\+:\\)\\?\\)\\?\\zs.*'), {'cwd': expand(get(matchlist(expand(\"<amatch>\"), '\\c\\mterm://\\(.\\{-}\\)//'), 1, ''))})",
   })
+  vim.api.nvim_create_autocmd({ 'termosc' }, {
+    pattern = 'term://*',
+    group = nvim_terminal_augroup,
+    callback = function(e)
+      if vim.v.event.command == 7 and vim.o.autoshelldir then
+        local dir = string.gsub(vim.v.event.payload, "file://[^/]*", "")
+        if vim.fn.isdirectory(dir) == 1 then
+          vim.cmd.lcd(dir)
+        else
+          vim.cmd.echomsg([["Warning: received OSC7 for non-existing dir " .. string(v:event)]])
+        end
+      end
+    end
+  })
   vim.api.nvim_create_autocmd({ 'cmdwinenter' }, {
     pattern = '[:>]',
     group = vim.api.nvim_create_augroup('nvim_cmdwin', {}),

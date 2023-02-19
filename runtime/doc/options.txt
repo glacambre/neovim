@@ -642,6 +642,31 @@ A jump table for the options with a short description can be found at |Q_op|.
 	the current directory won't change when navigating to it.
 	Note: When this option is on some plugins may not work.
 
+			*'autoshelldir'* *'asd'* *'noautoshelldir'* *'noasd'*
+'autoshelldir' 'asd'	boolean (default off)
+			global
+	When on, Neovim will change the current working directory of terminal
+	buffers whenever an OSC7 sequence is emitted by the job running in the
+	terminal buffer.
+	Emitting such sequences from your shell requires editing your
+	shell configuration files.
+	- For bash, add to your .bashrc:
+		function print_osc7() {
+		    printf "\033]7;file://$HOST/$PWD\033\\"
+		}
+		PROMPT_COMMAND="print_osc7${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+	- For zsh, add to your .zshrc:
+		function print_osc7() {
+		    printf "\033]7;file://$HOST/$PWD\033\\"
+		}
+		autoload -Uz add-zsh-hook
+		add-zsh-hook -Uz chpwd print_osc7
+	- For fish, add to your config.fish:
+		function print_osc7 --on-variable=PWD
+		    printf "\033]7;file://$HOST/$PWD\033\\"
+		end
+
+
 				*'arabic'* *'arab'* *'noarabic'* *'noarab'*
 'arabic' 'arab'		boolean (default off)
 			local to window

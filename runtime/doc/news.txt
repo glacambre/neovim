@@ -55,6 +55,10 @@ NEW FEATURES                                                    *news-features*
 
 The following new APIs or features were added.
 
+• The `autoshelldir` option enables synchronizing your shell's current working
+  directory with your terminal buffer's. Learn how to configure your shell to
+  take advantage of this feature in `:h autoshelldir` .
+
 • Terminal buffers now emit a TermOSC autocommand event when their children
   emit OSC sequences. See `:h TermOSC` for more information.
 

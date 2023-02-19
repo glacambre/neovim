@@ -98,6 +98,13 @@ return {
       defaults={if_true=false}
     },
     {
+      full_name='autoshelldir', abbreviation='asd',
+      short_desc=N_("change directory of terminal buffer on OSC7 sequence"),
+      type='bool', scope={'global'},
+      varname='p_asd',
+      defaults={if_true=false}
+    },
+    {
       full_name='autoindent', abbreviation='ai',
       short_desc=N_("take indent for new line from previous line"),
       type='bool', scope={'buffer'},

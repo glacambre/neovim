@@ -389,6 +389,7 @@ enum {
 EXTERN long p_aleph;            // 'aleph'
 EXTERN char *p_ambw;            ///< 'ambiwidth'
 EXTERN int p_acd;               ///< 'autochdir'
+EXTERN int p_asd;               ///< 'autoshelldir'
 EXTERN int p_ai;                ///< 'autoindent'
 EXTERN int p_bin;               ///< 'binary'
 EXTERN int p_bomb;              ///< 'bomb'
